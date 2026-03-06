@@ -26,6 +26,10 @@ namespace analyzer {
 
 namespace rv = std::ranges::views;
 namespace rs = std::ranges;
+
+// ВРЕМЕННО:
+using AnalysisResult = std::vector<std::pair<analyzer::function::Function, analyzer::metric::MetricResults>>;
+
 /**
  * @brief Анализирует список Python-файлов и извлекает метрики для всех функций и методов.
  *
@@ -41,10 +45,12 @@ namespace rs = std::ranges;
 auto AnalyseFunctions(const std::vector<std::string> &files,
                       const analyzer::metric::MetricExtractor &metric_extractor) {
     // здесь ваш код
+    // ВРЕМЕННО: возвращаем пустой вектор результатов
+    return AnalysisResult{};
 }
 
 /**
- * 
+ *
  * @brief Группирует результаты анализа по классам.
  *
  * Эта функция:
@@ -63,6 +69,8 @@ auto AnalyseFunctions(const std::vector<std::string> &files,
  */
 auto SplitByClasses(const auto &analysis) {
     // здесь ваш код
+    // ВРЕМЕННО: возвращаем пустой вектор векторов
+    return std::vector<AnalysisResult>{};
 }
 
 /**
@@ -75,6 +83,8 @@ auto SplitByClasses(const auto &analysis) {
  */
 auto SplitByFiles(const auto &analysis) {
     // здесь ваш код
+    // ВРЕМЕННО: возвращаем пустой вектор векторов
+    return std::vector<AnalysisResult>{};
 }
 
 /**
