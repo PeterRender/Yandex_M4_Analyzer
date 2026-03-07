@@ -13,16 +13,24 @@ namespace analyzer::file {
 namespace rv = std::ranges::views;
 namespace rs = std::ranges;
 
-File::File(const std::string &filename) : name{filename} {
-    std::ifstream file(name);
+// Конструктор, принимающий имя исходного анализируемого Python-файла
+// (читает его содержимое и получает AST через tree-sitter)
+File::File(const std::string &filename) : name_{filename} {
+    std::ifstream file(name_);  // открываем файл для чтения
 
     if (!file.is_open()) {
+        // Если файл не открывается, то бросаем исключение с понятным сообщением
         throw std::invalid_argument("Can't open file " + filename);
     }
-    ast = GetAst(filename);
-    source_lines = ReadSourceFile(file);
+
+    // Получаем AST дерево от tree-sitter
+    ast_ = GetAst(filename);
+
+    // Читаем исходные строки файла
+    source_lines_ = ReadSourceFile(file);
 }
 
+// Метод для построчного чтения исходного Python-файла
 std::vector<std::string> File::ReadSourceFile(std::ifstream &file) {
     std::vector<std::string> lines;
     std::string line;
@@ -32,16 +40,22 @@ std::vector<std::string> File::ReadSourceFile(std::ifstream &file) {
     return lines;
 }
 
+// Метод для получения AST-дерева от tree-sitter (использован синтаксис function-try-block)
 std::string File::GetAst(const std::string &filename) try {
-    std::string full_cmd = File::command_prefix + filename + " 2>&1";
+    // Формируем полную команду: префикс + имя_файла + "2>&1" (перенаправляем stderr в stdout для захвата ошибок)
+    std::string full_cmd = File::command_prefix_ + filename + " 2>&1";
     std::string result;
     std::array<char, 256> buffer;
 
+    // Используем unique_ptr с кастомным "удалителем" для автоматического закрытия pipe
+    // ("удалитель" реализован как лямбда, которая закрывает pipe и проверяет код возврата)
     using PipePtr = std::unique_ptr<FILE, decltype([](FILE *pipe) {
                                         if (!pipe)
                                             return;
 
                                         int status = pclose(pipe);
+
+                                        // Проверяем код возврата команды
                                         if (WIFEXITED(status)) {
                                             int exit_status = WEXITSTATUS(status);
                                             if (exit_status != 0) {
@@ -53,18 +67,21 @@ std::string File::GetAst(const std::string &filename) try {
                                         }
                                     })>;
 
+    // Выполняем команду и открываем pipe для чтения её вывода
     FILE *raw_pipe = popen(full_cmd.c_str(), "r");
     if (!raw_pipe) {
         throw std::runtime_error("Failed to execute command: " + std::string(std::strerror(errno)));
     }
-    PipePtr pipe(raw_pipe);
+    PipePtr pipe(raw_pipe);  // unique_ptr автоматически закроет pipe при выходе из области видимости
 
+    // Читаем вывод команды по блокам
     while (fgets(buffer.data(), buffer.size(), pipe.get())) {
         result += buffer.data();
     }
 
     return result;
 } catch (const std::exception &e) {
+    // Перехватываем любые исключения и добавляем имя анализируемого файла
     throw std::runtime_error("Error while getting ast from " + filename);
 }
 
