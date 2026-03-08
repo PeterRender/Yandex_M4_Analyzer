@@ -15,8 +15,11 @@
 #include <vector>
 
 namespace analyzer::metric::metric_impl {
+
+// Метод, возвращающий название метрики
 std::string CountParametersMetric::Name() const { return kName; }
 
+// Метод, реализующий вычисление метрики (принимает функцию, возвращает количество ее параметров)
 MetricResult::ValueType CountParametersMetric::CalculateImpl(const function::Function &f) const {
     auto &function_ast = f.ast;
     // 1. Находим начало блока параметров

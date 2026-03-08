@@ -20,12 +20,18 @@
 
 namespace analyzer::metric::metric_impl {
 
-struct CodeLinesCountMetric final : IMetric {
+// Класс, отвечающий за подсчет метрики "Количество строк кода без учета комментариев и пропусков строк"
+class CodeLinesCountMetric final : public IMetric {
+public:
+    // Статическая константа с названием метрики (общая для всех экземпляров)
     static inline const std::string kName = "Code lines count";
 
 protected:
+    // Метод, возвращающий название метрики
     std::string Name() const override;
 
-    MetricResult::ValueType CalculateImpl(const function::Function& f) const override;};
+    // Метод, реализующий вычисление метрики (принимает функцию, возвращает количество ее строк кода)
+    MetricResult::ValueType CalculateImpl(const function::Function &f) const override;
+};
 
 }  // namespace analyzer::metric::metric_impl

@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 
+// Глобальная функция преобразования числа из строкового вида в целочисленный.
 inline int ToInt(std::string_view value) {
     int result{};
     auto [parse_end_ptr, error_code] = std::from_chars(value.begin(), value.end(), result);

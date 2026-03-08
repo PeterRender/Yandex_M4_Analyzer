@@ -20,12 +20,19 @@
 
 namespace analyzer::metric::metric_impl {
 
-struct CyclomaticComplexityMetric : IMetric {
+// Класс, отвечающий за подсчет метрики "Цикломатическая сложность функции"
+class CyclomaticComplexityMetric : public IMetric {
+public:
+    // Статическая константа с названием метрики (общая для всех экземпляров)
     static inline const std::string kName = "Cyclomatic Complexity";
 
 protected:
+    // Метод, возвращающий название метрики
     std::string Name() const override;
 
-    MetricResult::ValueType CalculateImpl(const function::Function& f) const override;};
+    // Метод, реализующий вычисление метрики
+    // (принимает функцию, возвращает ее цикломатическую сложность)
+    MetricResult::ValueType CalculateImpl(const function::Function &f) const override;
+};
 
 }  // namespace analyzer::metric::metric_impl

@@ -17,7 +17,11 @@
 #include <vector>
 
 namespace analyzer::metric::metric_impl {
+
+// Метод, возвращающий название метрики
 std::string CyclomaticComplexityMetric::Name() const { return kName; }
+
+// Метод, реализующий вычисление метрики (принимает функцию, возвращает ее цикломатическую сложность)
 MetricResult::ValueType CyclomaticComplexityMetric::CalculateImpl(const function::Function &f) const {
     // Получаем строковое представление AST (абстрактного синтаксического дерева) функции.
     // Это S-выражение, сгенерированное утилитой tree-sitter, например:
@@ -64,6 +68,5 @@ MetricResult::ValueType CyclomaticComplexityMetric::CalculateImpl(const function
     // сколько раз он встречается в `function_ast`, используя `std::string::find`
     // в цикле (это допустимо, так как вы работаете со строковым представлением AST,
     // а не с исходным кодом напрямую).
-
 }
 }  // namespace analyzer::metric::metric_impl
