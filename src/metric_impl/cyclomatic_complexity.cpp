@@ -114,7 +114,7 @@ MetricResult::ValueType CyclomaticComplexityMetric::CalculateImpl(const function
         return count;
     };
 
-    // Создаем диапазон из количеств вхождений каждого типа узла
+    // Создаем отображение из количеств вхождений каждого типа узла
     auto matches_view = complexity_nodes | rv::transform(count_node_matches);
 
     // Суммируем все количества вхождений с помощью fold_left_first
