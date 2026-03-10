@@ -20,17 +20,26 @@
 
 namespace analyzer::metric_accumulator::metric_accumulator_impl {
 
-struct CategoricalAccumulator : public IAccumulator {
+// Аккумулятор для категориальных (строковых) метрик
+// Подсчитывает частоту встречаемости каждого значения (например, для метрики naming style)
+class CategoricalAccumulator : public IAccumulator {
+public:
+    // Метод, накапливающий очередное значение метрики
+    // (ожидает, что metric_result.value имеет тип std::string)
     void Accumulate(const metric::MetricResult &metric_result) override;
 
+    // Метод, финализирующий накопление
+    // (в данном случае ничего не делает, т.к. частоты уже подсчитаны)
     virtual void Finalize() override;
 
+    // Метод, сбрасывающий состояние аккумулятора
     virtual void Reset() override;
 
+    // Метод, возвращающий словарь частот встречаемости значений
     const std::unordered_map<std::string, int> &Get() const;
 
 private:
-    std::unordered_map<std::string, int> categories_freq;
+    std::unordered_map<std::string, int> categories_freq_;  // словарь частот встречаемости значений
 };
 
 }  // namespace analyzer::metric_accumulator::metric_accumulator_impl
