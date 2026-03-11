@@ -22,8 +22,8 @@
 
 namespace analyzer::metric {
 
-namespace rv = std::ranges::views;
-namespace rs = std::ranges;
+namespace rv = std::ranges::views;  // псевдоним пространства имен отображений
+namespace rs = std::ranges;         // псевдоним пространства имен диапазонов
 
 // Метод, регистрирующий новую метрику (добавляет ее в хранилище метрик)
 void MetricExtractor::RegisterMetric(std::unique_ptr<IMetric> metric) { metrics_.push_back(std::move(metric)); }
