@@ -27,16 +27,6 @@ MetricResult::ValueType CountParametersMetric::CalculateImpl(const function::Fun
     // Получаем строковое представление AST-дерева функции
     auto &function_ast = f.ast;
 
-    // Список всех возможных типов узлов, представляющих параметры функции в AST
-    constexpr std::array<std::string_view, 6> parameter_nodes = {
-        "(identifier",               // обычный параметр: def foo(a)
-        "(default_parameter",        // параметр со значением по умолчанию: def foo(a=5)
-        "(typed_parameter",          // параметр с типом: def foo(a: int)
-        "(typed_default_parameter",  // параметр с типом и значением: def foo(a: int = 5)
-        "(list_splat_pattern",       // *args - собирает оставшиеся позиционные аргументы
-        "(dictionary_splat_pattern"  // **kwargs - собирает оставшиеся именованные аргументы
-    };
-
     // 1. Находим блок параметров функции в ее AST-дереве (параметры находятся внутри узла (parameters ...)
     const std::string params_marker = "(parameters";
     size_t params_start = function_ast.find(params_marker);
@@ -61,29 +51,42 @@ MetricResult::ValueType CountParametersMetric::CalculateImpl(const function::Fun
     // 3. Создаем отображение (std::string_view) подстроки, содержащей только блок параметров
     std::string_view params_block(function_ast.data() + params_start, params_end - params_start);
 
-    // Лямбда, подсчитывающая количество вхождений заданного типа узла (из parameter_nodes) в AST блока параметров
-    auto count_node_matches = [params_block](std::string_view node_type) -> size_t {
-        size_t count = 0;
-        size_t pos = 0;
+    // 4. Считаем узлы верхнего уровня в блоке parameters
+    // (каждый такой узел соответствует одному параметру функции)
 
-        // Ищем все вхождения node_type в блоке параметров
-        while ((pos = params_block.find(node_type, pos)) != std::string_view::npos) {
-            count++;
-            pos += node_type.length();  // продолжаем поиск со следующей позиции
+    size_t pos = params_marker.length();          // позиция первого символа после "(parameters"
+    size_t block_length = params_block.length();  // число символов в блоке параметров функции
+
+    int count = 0;  // счетчик параметров функции
+
+    while (pos < block_length) {
+        // Пропускаем пробелы и служебные символы
+        pos = params_block.find_first_not_of(" \n\t", pos);
+        if (pos == std::string_view::npos || pos >= block_length)
+            break;
+
+        // Если нашли открывающую скобку - это начало узла параметра
+        if (params_block[pos] == '(') {
+            count++;  // каждый узел верхнего уровня в parameters - это один параметр функции
+            pos++;
+
+            // Пропускаем весь узел целиком, используя баланс скобок
+            // (нас не интересует внутренняя структура узла)
+            int balance = 1;
+            while (pos < block_length && balance > 0) {
+                if (params_block[pos] == '(')
+                    balance++;  // встретили открывающую скобку - уровень вложенности растет
+                else if (params_block[pos] == ')')
+                    balance--;  // встретили закрывающую - уровень падает
+                pos++;
+            }
+        } else {
+            pos++;  // пропускаем другие символы (например, пробелы между узлами)
         }
-        return count;
-    };
-
-    // Создаем отображение из количеств вхождений каждого типа узла
-    auto matches_view = parameter_nodes | rv::transform(count_node_matches);
-
-    // Суммируем все количества вхождений с помощью fold_left_first
-    // (fold_left_first принимает два аргумента: диапазон и функцию сложения)
-    auto total_param_nodes = rs::fold_left_first(matches_view, std::plus<>());
+    }
 
     // Возвращаем подсчитанное количество параметров функции
-    // (parameter_nodes не пуст, transform сохраняет размер диапазона, поэтому fold_left_first всегда вернет значение)
-    return static_cast<MetricResult::ValueType>(total_param_nodes.value());
+    return static_cast<MetricResult::ValueType>(count);
 }
 
 }  // namespace analyzer::metric::metric_impl
