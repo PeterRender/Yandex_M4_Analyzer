@@ -74,4 +74,14 @@ TEST(AvgAccTest, LotsOfValues) {
     EXPECT_DOUBLE_EQ(acc.Get(), 500.5);  // среднее от 1 до 1000 = 500.5
 }
 
+// Тест 8: Отрицательные числа
+TEST(AvgAccTest, NegativeValues) {
+    AverageAccumulator acc;
+    acc.Accumulate(MetricResult{.metric_name = "test", .value = -5});
+    acc.Accumulate(MetricResult{.metric_name = "test", .value = -10});
+    acc.Accumulate(MetricResult{.metric_name = "test", .value = -15});
+    acc.Finalize();
+    EXPECT_DOUBLE_EQ(acc.Get(), -10.0);  // (-5 + -10 + -15)/3 = -10
+}
+
 }  // namespace analyzer::metric_accumulator::metric_accumulator_impl::test

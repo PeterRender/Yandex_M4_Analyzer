@@ -5,66 +5,28 @@
 
 namespace analyzer::metric::metric_impl {
 
+// Параметрический класс-тест метрики "Количество строк кода функции"
+// Параметры: имя файла, имя функции, ожидаемое количество строк кода
 // Примечание: при подсчете строк кода не учитываются строки с def, пустые строки и строки с комментариями
+class CodeLinesCountTest : public ::testing::TestWithParam<std::tuple<std::string, std::string, int>> {};
 
-// Тест 1: Простая функция с 5 строками кода
-TEST(CodeLinesCountTest, Simple) {
-    auto result = CalcMetric<CodeLinesCountMetric>("simple.py", "test_simple");
-    EXPECT_EQ(std::get<int>(result), 5);
+// Тест метрики "Количество строк кода функции"
+TEST_P(CodeLinesCountTest, CheckCount) {
+    auto [filename, funcname, expected] = GetParam();
+    auto result = CalcMetric<CodeLinesCountMetric>(filename, funcname);
+    EXPECT_EQ(std::get<int>(result), expected);
 }
 
-// Тест 2: Функция с if, 3 строки кода
-TEST(CodeLinesCountTest, SingleIf) {
-    auto result = CalcMetric<CodeLinesCountMetric>("if.py", "testIf");
-    EXPECT_EQ(std::get<int>(result), 3);
-}
-
-// Тест 3: Функция с вложенными if, 8 строк кода
-TEST(CodeLinesCountTest, NestedIf) {
-    auto result = CalcMetric<CodeLinesCountMetric>("nested_if.py", "Testnestedif");
-    EXPECT_EQ(std::get<int>(result), 8);
-}
-
-// Тест 4: Функция с циклами, 6 строк кода
-TEST(CodeLinesCountTest, Loops) {
-    auto result = CalcMetric<CodeLinesCountMetric>("loops.py", "TestLoops");
-    EXPECT_EQ(std::get<int>(result), 6);
-}
-
-// Тест 5: Функция с исключениями, 7 строк кода
-TEST(CodeLinesCountTest, Exceptions) {
-    auto result = CalcMetric<CodeLinesCountMetric>("exceptions.py", "Try_Exceptions");
-    EXPECT_EQ(std::get<int>(result), 7);
-}
-
-// Тест 6: Функция с match-case, 7 строк кода
-TEST(CodeLinesCountTest, MatchCase) {
-    auto result = CalcMetric<CodeLinesCountMetric>("match_case.py", "test_Match_case");
-    EXPECT_EQ(std::get<int>(result), 7);
-}
-
-// Тест 7: Функция с тернарным оператором, 1 строка кода
-TEST(CodeLinesCountTest, Ternary) {
-    auto result = CalcMetric<CodeLinesCountMetric>("ternary.py", "teSt_ternary");
-    EXPECT_EQ(std::get<int>(result), 1);
-}
-
-// Тест 8: Функция с комментариями, 3 строки кода
-TEST(CodeLinesCountTest, Comments) {
-    auto result = CalcMetric<CodeLinesCountMetric>("comments.py", "Func_comments");
-    EXPECT_EQ(std::get<int>(result), 3);
-}
-
-// Тест 9: Многострочная функция, 11 строк кода
-TEST(CodeLinesCountTest, ManyLines) {
-    auto result = CalcMetric<CodeLinesCountMetric>("many_lines.py", "testmultiline");
-    EXPECT_EQ(std::get<int>(result), 11);
-}
-
-// Тест 10: Функция с множеством параметров, 1 строка кода
-TEST(CodeLinesCountTest, ManyParameters) {
-    auto result = CalcMetric<CodeLinesCountMetric>("many_parameters.py", "__test_multiparameters__");
-    EXPECT_EQ(std::get<int>(result), 1);
-}
-
+// Набор из 10 тестов метрики "Количество строк кода функции"
+INSTANTIATE_TEST_SUITE_P(CodeLinesCountTestSuite, CodeLinesCountTest,
+                         ::testing::Values(std::make_tuple("simple.py", "test_simple", 5),
+                                           std::make_tuple("if.py", "testIf", 3),
+                                           std::make_tuple("nested_if.py", "Testnestedif", 8),
+                                           std::make_tuple("loops.py", "TestLoops", 6),
+                                           std::make_tuple("exceptions.py", "Try_Exceptions", 7),
+                                           std::make_tuple("match_case.py", "test_Match_case", 7),
+                                           std::make_tuple("ternary.py", "teSt_ternary", 1),
+                                           std::make_tuple("comments.py", "Func_comments", 3),
+                                           std::make_tuple("many_lines.py", "testmultiline", 11),
+                                           std::make_tuple("many_parameters.py", "__test_multiparameters__", 1)));
 }  // namespace analyzer::metric::metric_impl

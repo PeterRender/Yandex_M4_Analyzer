@@ -18,7 +18,7 @@ TEST_P(NamingStyleTest, CheckStyle) {
     EXPECT_EQ(std::get<std::string>(result), expected);
 }
 
-// Набор тестов метрики "Определение стиля имени функции"
+// Набор из 10 тестов метрики "Определение стиля имени функции"
 INSTANTIATE_TEST_SUITE_P(NamingStyleTestSuite, NamingStyleTest,
                          ::testing::Values(std::make_tuple("simple.py", "test_simple", "Snake Case"),
                                            std::make_tuple("many_parameters.py", "__test_multiparameters__",
