@@ -20,7 +20,7 @@ File::File(const std::string &filename) : name_{filename} {
 
     if (!file.is_open()) {
         // Если файл не открывается, то бросаем исключение с понятным сообщением
-        throw std::invalid_argument("Can't open file " + filename);
+        throw std::runtime_error("Can't open file: " + filename);
     }
 
     // Получаем AST дерево от tree-sitter

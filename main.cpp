@@ -27,83 +27,135 @@
 #include "metric_impl/metrics.hpp"
 
 int main(int argc, char *argv[]) {
-    analyzer::cmd::ProgramOptions options;
-    if (!options.Parse(argc, argv))
-        return 1;
-    using namespace analyzer::metric::metric_impl;
-    analyzer::metric::MetricExtractor metric_extractor;
-    metric_extractor.RegisterMetric(std::make_unique<CyclomaticComplexityMetric>());
-    metric_extractor.RegisterMetric(std::make_unique<CodeLinesCountMetric>());
-    // ВРЕМЕННО: NamingStyleMetric - нереализованная метрика
-    // metric_extractor.RegisterMetric(std::make_unique<NamingStyleMetric>());
-    metric_extractor.RegisterMetric(std::make_unique<CountParametersMetric>());
+    try {
+        // ==== 1. Обработка аргументов командной строки ====
+        // Создаем парсер опций командной строки и передаем ему аргументы
+        analyzer::cmd::ProgramOptions options;
+        if (!options.Parse(argc, argv))
+            return 1;  // если парсинг не удался или был запрошен help, завершаем работу
 
-    auto analysis = analyzer::AnalyseFunctions(options.GetFiles(), metric_extractor);
+        // ==== 2. Регистрация метрик ====
+        // Создаем экстрактор метрик и регистрируем в нем все реализованные метрики
+        using namespace analyzer::metric::metric_impl;
+        analyzer::metric::MetricExtractor metric_extractor;
+        // Регистрируем метрику цикломатической сложности
+        metric_extractor.RegisterMetric(std::make_unique<CyclomaticComplexityMetric>());
+        // Регистрируем метрику количества строк кода
+        metric_extractor.RegisterMetric(std::make_unique<CodeLinesCountMetric>());
+        // Регистрируем метрику количества параметров
+        metric_extractor.RegisterMetric(std::make_unique<CountParametersMetric>());
+        // Опционально: метрика стиля именования (пока закомментирована)
+        // metric_extractor.RegisterMetric(std::make_unique<NamingStyleMetric>());
 
-    std::println("Analysis for every function:");
-    std::ranges::for_each(analysis, [&](const auto &elem) {
-        const auto &[function, metrics] = elem;
-        std::println("  {}::{}{}: ", function.filename,
-                     (function.class_name.has_value() ? function.class_name.value() + "::" : ""), function.name);
-        std::ranges::for_each(metrics, [&](const auto &result) {
-            std::print("    {}: ", result.metric_name);
-            // std::visit([](auto &&val) { std::println("{}", val); }, result.value);
-            // ВРЕМЕННО: используем value напрямую (это int)
-            std::println("{}", result.value);
+        // ==== 3. Анализ всех функций из переданных файлов ====
+        // Вызываем главную функцию анализа, которая:
+        // - для каждого Python-файла получает AST-дерево с помощью tree-sitter
+        // - извлекает из AST-дерева все функции
+        // - вычисляет для каждой функции все зарегистрированные метрики
+        auto analysis = analyzer::AnalyseFunctions(options.GetFiles(), metric_extractor);
+
+        // ==== 4. Вывод результатов для каждой функции (детальный анализ) ====
+        std::println("Analysis for every function:");
+        std::ranges::for_each(analysis, [&](const auto &elem) {
+            const auto &[function, metrics] = elem;
+            // Формируем полное имя функции: если это метод класса, добавляем имя класса
+            std::println("  {}::{}{}: ", function.filename,
+                         (function.class_name.has_value() ? function.class_name.value() + "::" : ""), function.name);
+
+            // Выводим все метрики для данной функции
+            std::ranges::for_each(metrics, [&](const auto &result) {
+                std::print("    {}: ", result.metric_name);
+                // std::visit([](auto &&val) { std::println("{}", val); }, result.value);
+                // ВРЕМЕННО: используем value напрямую (это int)
+                std::println("{}", result.value);
+            });
         });
-    });
 
-    analyzer::metric_accumulator::MetricsAccumulator accumulator;
-    using namespace analyzer::metric_accumulator::metric_accumulator_impl;
-    accumulator.RegisterAccumulator(CyclomaticComplexityMetric::kName, std::make_unique<SumAverageAccumulator>());
-    // ВРЕМЕННО: CategoricalAccumulator - нереализованный аккумулятор
-    // accumulator.RegisterAccumulator(NamingStyleMetric::kName, std::make_unique<CategoricalAccumulator>());
-    accumulator.RegisterAccumulator(CodeLinesCountMetric::kName, std::make_unique<SumAverageAccumulator>());
-    accumulator.RegisterAccumulator(CountParametersMetric::kName, std::make_unique<AverageAccumulator>());
+        // ==== 5. Регистрация аккумуляторов для агрегации результатов ====
+        // Аккумуляторы собирают статистику по группам функций (по файлам, по классам, общую)
+        analyzer::metric_accumulator::MetricsAccumulator accumulator;
+        using namespace analyzer::metric_accumulator::metric_accumulator_impl;
+        // Для цикломатической сложности считаем сумму и среднее
+        accumulator.RegisterAccumulator(CyclomaticComplexityMetric::kName, std::make_unique<SumAverageAccumulator>());
+        // Для количества строк кода считаем сумму и среднее
+        accumulator.RegisterAccumulator(CodeLinesCountMetric::kName, std::make_unique<SumAverageAccumulator>());
+        // Для количества параметров считаем только среднее
+        accumulator.RegisterAccumulator(CountParametersMetric::kName, std::make_unique<AverageAccumulator>());
+        // Опционально: для стиля именования нужен категориальный аккумулятор (пока закомментировано)
+        // accumulator.RegisterAccumulator(NamingStyleMetric::kName, std::make_unique<CategoricalAccumulator>());
 
-    auto print_accumulated_analysis = [](const auto &accumulator) {
-        auto &cc_acc_metric =
-            accumulator.template GetFinalizedAccumulator<SumAverageAccumulator>(CyclomaticComplexityMetric::kName);
-        std::println("    Sum Cyclomatic Complexity: {}", cc_acc_metric.Get().sum);
-        std::println("    Average Cyclomatic Complexity per function: {}", cc_acc_metric.Get().average);
-        // ВРЕМЕННО: вывод результатов нереализованных метрики NamingStyleMetric и аккумулятора CategoricalAccumulator
-        // auto &naming_acc_metric =
-        //     accumulator.template GetFinalizedAccumulator<CategoricalAccumulator>(NamingStyleMetric::kName);
-        // std::ranges::for_each(naming_acc_metric.Get(), [](const auto &elem) {
-        //     std::println("    Naming style '{}' is occured {} times", elem.first, elem.second);
-        // });
-        auto &cl_acc_metric =
-            accumulator.template GetFinalizedAccumulator<SumAverageAccumulator>(CodeLinesCountMetric::kName);
-        std::println("    Sum Code lines count: {}", cl_acc_metric.Get().sum);
-        std::println("    Average Code lines count per function: {}", cl_acc_metric.Get().average);
-        auto &cp_acc_metric =
-            accumulator.template GetFinalizedAccumulator<AverageAccumulator>(CountParametersMetric::kName);
-        std::println("    Average Parameters count per function: {}", cp_acc_metric.Get());
-    };
+        // ==== 6. Вспомогательная лямбда для вывода агрегированных результатов ====
+        auto print_accumulated_analysis = [](const auto &accumulator) {
+            // Получаем и выводим результаты для цикломатической сложности
+            auto &cc_acc_metric =
+                accumulator.template GetFinalizedAccumulator<SumAverageAccumulator>(CyclomaticComplexityMetric::kName);
+            std::println("    Sum Cyclomatic Complexity: {}", cc_acc_metric.Get().sum);
+            std::println("    Average Cyclomatic Complexity per function: {}", cc_acc_metric.Get().average);
+            // Получаем и выводим результаты для количества строк кода
+            auto &cl_acc_metric =
+                accumulator.template GetFinalizedAccumulator<SumAverageAccumulator>(CodeLinesCountMetric::kName);
+            std::println("    Sum Code lines count: {}", cl_acc_metric.Get().sum);
+            std::println("    Average Code lines count per function: {}", cl_acc_metric.Get().average);
+            // Получаем и выводим результаты для количества параметров
+            auto &cp_acc_metric =
+                accumulator.template GetFinalizedAccumulator<AverageAccumulator>(CountParametersMetric::kName);
+            std::println("    Average Parameters count per function: {}", cp_acc_metric.Get());
+            // Опционально: вывод результатов для стиля именования (пока закомментировано)
+            // auto &naming_acc_metric =
+            //     accumulator.template GetFinalizedAccumulator<CategoricalAccumulator>(NamingStyleMetric::kName);
+            // std::ranges::for_each(naming_acc_metric.Get(), [](const auto &elem) {
+            //     std::println("    Naming style '{}' is occured {} times", elem.first, elem.second);
+            // });
+        };
 
-    auto analysis_by_files = analyzer::SplitByFiles(analysis);
+        // ==== 7. Агрегация по файлам ====
+        // Группируем результаты анализа по файлам
+        auto analysis_by_files = analyzer::SplitByFiles(analysis);
 
-    std::ranges::for_each(analysis_by_files, [&accumulator, &print_accumulated_analysis](const auto &analysis) {
+        // Для каждой группы (файла) накапливаем метрики и выводим результат
+        std::ranges::for_each(analysis_by_files, [&accumulator, &print_accumulated_analysis](const auto &analysis) {
+            analyzer::AccumulateFunctionAnalysis(analysis, accumulator);
+            std::println();
+            std::println("Accumulated Analysis for file {}:", analysis.front().first.filename);
+            print_accumulated_analysis(accumulator);
+            accumulator.ResetAccumulators();  // сбрасываем аккумуляторы для следующего файла
+        });
+
+        // ==== 8. Агрегация по классам ====
+        // Группируем результаты анализа по классам (только методы классов)
+        auto analysis_by_classes = analyzer::SplitByClasses(analysis);
+
+        // Для каждой группы (класса) накапливаем метрики и выводим результат
+        std::ranges::for_each(analysis_by_classes, [&accumulator, &print_accumulated_analysis](const auto &analysis) {
+            analyzer::AccumulateFunctionAnalysis(analysis, accumulator);
+            std::println();
+            std::println("Accumulated Analysis for сlass {}:", analysis.front().first.class_name.value());
+            print_accumulated_analysis(accumulator);
+            accumulator.ResetAccumulators();  // сбрасываем аккумуляторы для следующего класса
+        });
+
+        // ==== 9. Общая агрегация по всем функциям ====
+        // Накапливаем метрики для всех функций из всех файлов
         analyzer::AccumulateFunctionAnalysis(analysis, accumulator);
         std::println();
-        std::println("Accumulated Analysis for file {}:", analysis.front().first.filename);
+        std::println("Accumulated Analysis for All Functions:");
         print_accumulated_analysis(accumulator);
-        accumulator.ResetAccumulators();
-    });
+        return 0;
 
-    auto analysis_by_classes = analyzer::SplitByClasses(analysis);
-
-    std::ranges::for_each(analysis_by_classes, [&accumulator, &print_accumulated_analysis](const auto &analysis) {
-        analyzer::AccumulateFunctionAnalysis(analysis, accumulator);
-        std::println();
-        std::println("Accumulated Analysis for сlass {}:", analysis.front().first.class_name.value());
-        print_accumulated_analysis(accumulator);
-        accumulator.ResetAccumulators();
-    });
-
-    analyzer::AccumulateFunctionAnalysis(analysis, accumulator);
-    std::println();
-    std::println("Accumulated Analysis for All Functions:");
-    print_accumulated_analysis(accumulator);
-    return 0;
+    }
+    // Обрабатываем runtime_error (например, ошибки открытия файлов, ошибки tree-sitter)
+    catch (const std::runtime_error &e) {
+        std::cerr << "Runtime error: " << e.what() << std::endl;
+        return 1;
+    }
+    // Обрабатываем любые другие стандартные исключения
+    catch (const std::exception &e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    // Обрабатываем неизвестные исключения
+    catch (...) {
+        std::cerr << "Unknown error occurred" << std::endl;
+        return 1;
+    }
 }

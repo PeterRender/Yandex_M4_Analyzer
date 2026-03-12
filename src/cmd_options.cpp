@@ -49,9 +49,22 @@ bool ProgramOptions::Parse(int argc, char *argv[]) {
         }
 
         return true;  // парсинг успешен, можно запускать основной функционал
-    } catch (const std::exception &e) {
-        // Ловим любые исключения boost::program_options (например, отсутствие обязательной опции)
+    }
+    // Обрабатываем cпецифичные ошибки boost::program_options
+    catch (const po::error &e) {
         std::cerr << "Error parsing command line: " << e.what() << "\n";
+        desc_.print(std::cout);
+        return false;
+    }
+    // Обрабатываем runtime-ошибки (выводим справку с правильным синтаксисом)
+    catch (const std::runtime_error &e) {
+        std::cerr << "Runtime error: " << e.what() << "\n";
+        desc_.print(std::cout);
+        return false;
+    }
+    // Обрабатываем любые другие стандартные исключения (выводим справку с правильным синтаксисом)
+    catch (const std::exception &e) {
+        std::cerr << "Unexpected error: " << e.what() << "\n";
         desc_.print(std::cout);
         return false;
     }
