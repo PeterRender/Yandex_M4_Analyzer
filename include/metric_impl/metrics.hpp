@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../metric.hpp"
-#include "code_lines_count.hpp"
-#include "cyclomatic_complexity.hpp"
+#include "code_lines_count.hpp"       // интерфейс класса метрики "Количество строк кода функции"
+#include "cyclomatic_complexity.hpp"  // интерфейс класса метрики "Цикломатическая сложность функции"
 #include "naming_style.hpp"
-#include "parameters_count.hpp"
+#include "parameters_count.hpp"  // интерфейс класса метрики "Количество параметров функции"
