@@ -121,9 +121,9 @@ MetricResult::ValueType CyclomaticComplexityMetric::CalculateImpl(const function
     // (fold_left_first принимает два аргумента: диапазон и функцию сложения)
     auto total_control_nodes = rs::fold_left_first(matches_view, std::plus<>());
 
-    // Возвращаем подсчитанную цикломатическую сложность
+    // Возвращаем подсчитанную цикломатическую сложность (int, обернутый в variant)
     // 1. complexity_nodes не пуст, transform сохраняет размер диапазона, поэтому fold_left_first всегда вернет значение
     // 2. В конце добавляем базовую цикломатическая сложность = 1 (всегда есть как минимум один путь выполнения)
-    return static_cast<MetricResult::ValueType>(static_cast<int>(total_control_nodes.value()) + 1);
+    return static_cast<int>(total_control_nodes.value()) + 1;
 }
 }  // namespace analyzer::metric::metric_impl

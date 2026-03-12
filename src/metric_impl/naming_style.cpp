@@ -1,60 +1,47 @@
-#include "metric_impl/naming_style.hpp"
+#include "metric_impl/naming_style.hpp"  // интерфейс класса метрики "Определение стиля имени функции"
 
 #include <unistd.h>
 
 #include <algorithm>
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <ranges>
-#include <sstream>
 #include <string>
-#include <variant>
-#include <vector>
 
 namespace analyzer::metric::metric_impl {
+
+// Метод, возвращающий название метрики
 std::string NamingStyleMetric::Name() const { return kName; }
 
+// Метод, реализующий вычисление метрики (принимает функцию, возвращает тип ее имени)
 MetricResult::ValueType NamingStyleMetric::CalculateImpl(const function::Function &f) const {
     auto &functionName = f.name;
-    bool hasUnderscore = functionName.find('_') != std::string::npos;
-    bool hasHyphen = functionName.find('-') != std::string::npos;
-    bool hasUpper = std::any_of(functionName.begin(), functionName.end(), [](char c) { return isupper(c); });
 
-    if (hasHyphen) {
-        return "Unknown";
+    // Если есть дефис в имени функции - стиль Unknown
+    if (functionName.find('-') != std::string::npos) {
+        return std::string("Unknown");
     }
 
-    // Проверяем snake_case
+    // Проверяем наличие подчеркиваний в имени функции
+    bool hasUnderscore = functionName.find('_') != std::string::npos;
+
+    // Проверяем наличие заглавных букв (хотя бы одна)
+    bool hasUpper = std::any_of(functionName.begin(), functionName.end(), [](char c) { return isupper(c); });
+
+    // Проверяем соответствие стилю snake_case
     if (hasUnderscore) {
         // Должны быть только строчные буквы и подчеркивания
         bool allLower = std::all_of(functionName.begin(), functionName.end(),
                                     [](char c) { return islower(c) || c == '_' || isdigit(c); });
-        if (allLower) {
-            return "Snake Case";
-        }
-        return "Unknown";
+
+        return (allLower) ? std::string("Snake Case") : std::string("Unknown");
     }
 
-    // Проверяем PascalCase/CamelCase
+    // Проверяем соответствие стилям PascalCase/CamelCase
     if (hasUpper) {
-        // Первая буква заглавная - PascalCase
-        if (isupper(functionName[0])) {
-            return "Pascal Case";
-        }
-        // Первая буква строчная - camelCase
-        else {
-            return "Camel Case";
-        }
+        // Если первая буква заглавная, то это стиль PascalCase, иначе - это стиль camelCase
+        return isupper(functionName[0]) ? std::string("Pascal Case") : std::string("Camel Case");
     }
 
     // Все символы строчные без разделителей
-    return "Lower Case";
+    return std::string("Lower Case");
 }
 
 }  // namespace analyzer::metric::metric_impl

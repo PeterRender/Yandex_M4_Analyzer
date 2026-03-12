@@ -12,9 +12,7 @@ void SumAverageAccumulator::Accumulate(const metric::MetricResult &metric_result
     }
 
     // Добавляем значение к сумме и увеличиваем счетчик
-    // sum += std::get<int>(metric_result.value);
-    // ВРЕМЕННО: используем value напрямую (это int)
-    sum += metric_result.value;
+    sum += std::get<int>(metric_result.value);
     count++;
 }
 

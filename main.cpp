@@ -1,26 +1,12 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iomanip>
 #include <iostream>
 #include <print>
-#include <ranges>
-#include <sstream>
-#include <string>
 #include <variant>
-#include <vector>
 
 #include "analyse.hpp"
 #include "cmd_options.hpp"
-#include "file.hpp"
-#include "function.hpp"
 #include "metric.hpp"
 #include "metric_accumulator.hpp"
 #include "metric_accumulator_impl/accumulators.hpp"
@@ -35,17 +21,17 @@ int main(int argc, char *argv[]) {
             return 1;  // если парсинг не удался или был запрошен help, завершаем работу
 
         // ==== 2. Регистрация метрик ====
-        // Создаем экстрактор метрик и регистрируем в нем все реализованные метрики
+        // Создаем экстрактор метрик функции и регистрируем в нем все реализованные метрики
         using namespace analyzer::metric::metric_impl;
         analyzer::metric::MetricExtractor metric_extractor;
-        // Регистрируем метрику цикломатической сложности
+        // Регистрируем метрику цикломатической сложности функции
         metric_extractor.RegisterMetric(std::make_unique<CyclomaticComplexityMetric>());
-        // Регистрируем метрику количества строк кода
+        // Регистрируем метрику количества строк кода функции
         metric_extractor.RegisterMetric(std::make_unique<CodeLinesCountMetric>());
-        // Регистрируем метрику количества параметров
+        // Регистрируем метрику количества параметров функции
         metric_extractor.RegisterMetric(std::make_unique<CountParametersMetric>());
-        // Опционально: метрика стиля именования (пока закомментирована)
-        // metric_extractor.RegisterMetric(std::make_unique<NamingStyleMetric>());
+        // Регистрируем метрику стиля именования функции
+        metric_extractor.RegisterMetric(std::make_unique<NamingStyleMetric>());
 
         // ==== 3. Анализ всех функций из переданных файлов ====
         // Вызываем главную функцию анализа, которая:
@@ -62,12 +48,10 @@ int main(int argc, char *argv[]) {
             std::println("  {}::{}{}: ", function.filename,
                          (function.class_name.has_value() ? function.class_name.value() + "::" : ""), function.name);
 
-            // Выводим все метрики для данной функции
+            // Выводим все метрики для данной функции (используем std::visit для обработки разных типов)
             std::ranges::for_each(metrics, [&](const auto &result) {
                 std::print("    {}: ", result.metric_name);
-                // std::visit([](auto &&val) { std::println("{}", val); }, result.value);
-                // ВРЕМЕННО: используем value напрямую (это int)
-                std::println("{}", result.value);
+                std::visit([](auto &&val) { std::println("{}", val); }, result.value);
             });
         });
 
@@ -81,8 +65,8 @@ int main(int argc, char *argv[]) {
         accumulator.RegisterAccumulator(CodeLinesCountMetric::kName, std::make_unique<SumAverageAccumulator>());
         // Для количества параметров считаем только среднее
         accumulator.RegisterAccumulator(CountParametersMetric::kName, std::make_unique<AverageAccumulator>());
-        // Опционально: для стиля именования нужен категориальный аккумулятор (пока закомментировано)
-        // accumulator.RegisterAccumulator(NamingStyleMetric::kName, std::make_unique<CategoricalAccumulator>());
+        // Для стиля именования используем категориальный аккумулятор
+        accumulator.RegisterAccumulator(NamingStyleMetric::kName, std::make_unique<CategoricalAccumulator>());
 
         // ==== 6. Вспомогательная лямбда для вывода агрегированных результатов ====
         auto print_accumulated_analysis = [](const auto &accumulator) {
@@ -100,12 +84,12 @@ int main(int argc, char *argv[]) {
             auto &cp_acc_metric =
                 accumulator.template GetFinalizedAccumulator<AverageAccumulator>(CountParametersMetric::kName);
             std::println("    Average Parameters count per function: {}", cp_acc_metric.Get());
-            // Опционально: вывод результатов для стиля именования (пока закомментировано)
-            // auto &naming_acc_metric =
-            //     accumulator.template GetFinalizedAccumulator<CategoricalAccumulator>(NamingStyleMetric::kName);
-            // std::ranges::for_each(naming_acc_metric.Get(), [](const auto &elem) {
-            //     std::println("    Naming style '{}' is occured {} times", elem.first, elem.second);
-            // });
+            // Получаем и выводим результаты для стиля именования (словарь частот встречаемости значений)
+            auto &naming_acc_metric =
+                accumulator.template GetFinalizedAccumulator<CategoricalAccumulator>(NamingStyleMetric::kName);
+            std::ranges::for_each(naming_acc_metric.Get(), [](const auto &elem) {
+                std::println("    Naming style '{}' is occured {} times", elem.first, elem.second);
+            });
         };
 
         // ==== 7. Агрегация по файлам ====

@@ -82,7 +82,7 @@ MetricResult::ValueType CodeLinesCountMetric::CalculateImpl(const function::Func
     // 2. Фильтруем только строки с кодом
     auto code_lines_view = rv::iota(start_line + 1, end_line + 1) | rv::filter(is_code_line);
 
-    // Возвращаем подсчитанное количество элементов в отфильтрованном диапазоне
-    return static_cast<MetricResult::ValueType>(rs::distance(code_lines_view));
+    // Возвращаем подсчитанное количество элементов в отфильтрованном диапазоне (int, обернутый в variant)
+    return static_cast<int>(rs::distance(code_lines_view));
 }
 }  // namespace analyzer::metric::metric_impl

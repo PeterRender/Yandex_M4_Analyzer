@@ -1,35 +1,20 @@
 #pragma once
 #include <unistd.h>
 
-#include <algorithm>
-#include <any>
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <ranges>
-#include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
 
 #include "function.hpp"
 
-namespace fs = std::filesystem;
-namespace rv = std::ranges::views;
-namespace rs = std::ranges;
-
 namespace analyzer::metric {
 
 // Структура, хранящая результат вычисления одной метрики для функции
 struct MetricResult {
-    using ValueType = int;  // тип значения метрики (пока int, но может быть расширен до variant)
-    // using ValueType = std::variant<int, std::string>; // если захотите реализовывать метрику
-    // naming style
+    // using ValueType = int;  // тип значения метрики (пока int, но может быть расширен до variant)
+    using ValueType = std::variant<int, std::string>;  // для поддержки метрик как с количественным, так и строковым
+                                                       // результатом (naming_style)
+
     std::string metric_name;  // название метрики (например, "Parameters count")
     ValueType value;          // вычисленное значение метрики
 };

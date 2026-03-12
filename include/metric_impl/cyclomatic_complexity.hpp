@@ -21,7 +21,7 @@
 namespace analyzer::metric::metric_impl {
 
 // Класс, отвечающий за подсчет метрики "Цикломатическая сложность функции"
-class CyclomaticComplexityMetric : public IMetric {
+class CyclomaticComplexityMetric final : public IMetric {
 public:
     // Статическая константа с названием метрики (общая для всех экземпляров)
     static inline const std::string kName = "Cyclomatic Complexity";

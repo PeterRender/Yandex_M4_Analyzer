@@ -85,8 +85,8 @@ MetricResult::ValueType CountParametersMetric::CalculateImpl(const function::Fun
         }
     }
 
-    // Возвращаем подсчитанное количество параметров функции
-    return static_cast<MetricResult::ValueType>(count);
+    // Возвращаем подсчитанное количество параметров функции (int, обернутый в variant)
+    return static_cast<int>(count);
 }
 
 }  // namespace analyzer::metric::metric_impl

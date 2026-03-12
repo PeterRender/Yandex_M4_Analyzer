@@ -5,6 +5,7 @@
 
 #include "file.hpp"
 #include "function.hpp"
+#include "metric.hpp"
 
 namespace analyzer::metric::metric_impl {
 
@@ -16,7 +17,7 @@ inline const std::string test_sub_dir = "src/metric_impl";
 
 // Шаблонная функция-хелпер для вычисления любой метрики
 template <typename MetricType>
-int CalcMetric(const std::string &filename, const std::string &func_name) {
+metric::MetricResult::ValueType CalcMetric(const std::string &filename, const std::string &func_name) {
     fs::path filepath = fs::current_path() / test_sub_dir / filename;  // путь к тестовому Python-файлу
 
     // Проверка наличия тестового Python-файла с заданным именем
@@ -44,7 +45,6 @@ int CalcMetric(const std::string &filename, const std::string &func_name) {
         auto result = metric.Calculate(*it);
 
         // Возвращаем полученное значение метрики
-        // return std::get<int>(result.value);
         return result.value;
 
     } catch (const std::exception &e) {

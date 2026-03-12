@@ -2,20 +2,7 @@
 
 #include <unistd.h>
 
-#include <algorithm>
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <ranges>
-#include <sstream>
 #include <string>
-#include <variant>
-#include <vector>
 
 namespace analyzer::metric_accumulator::metric_accumulator_impl {
 
@@ -26,7 +13,6 @@ void CategoricalAccumulator::Accumulate(const metric::MetricResult &metric_resul
         throw std::runtime_error("CategoricalAccumulator::Accumulate called after Finalize");
     }
     // Увеличиваем счетчик для данного значения
-    // (предполагается, что metric_result.value имеет тип std::string)
     categories_freq_[std::get<std::string>(metric_result.value)]++;
 }
 
