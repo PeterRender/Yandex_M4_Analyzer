@@ -2,21 +2,6 @@
 
 #include <unistd.h>
 
-#include <algorithm>
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <ranges>
-#include <sstream>
-#include <string>
-#include <variant>
-#include <vector>
-
 namespace analyzer::metric_accumulator::metric_accumulator_impl {
 
 // Метод, накапливающий очередное значение метрики
@@ -31,6 +16,10 @@ void AverageAccumulator::Accumulate(const metric::MetricResult &metric_result) {
     // ВРЕМЕННО: используем value напрямую (это int)
     sum += metric_result.value;
     count++;
+
+    // Примечание: в качестве улучшения можно реализовать подсчет через скользящее среднее:
+    // avg_new = avg_old + (value - avg_old) / count
+    // Это численно устойчивее, чем сумма всех значений, но потребуется коррекция логики с Finalize
 }
 
 // Метод, финализирующий накопление (вычисляет среднее)

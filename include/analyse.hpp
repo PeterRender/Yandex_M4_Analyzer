@@ -56,7 +56,7 @@ auto AnalyseFunctions(const std::vector<std::string> &files, const metric::Metri
         return std::make_pair(func, metric_extractor.Get(func));
     };
 
-    // Создаем конвейер обработки.
+    // Получаем вектор результата анализа с помощью композиции отображений
     return files | rv::transform(create_ast) |  // преобразуем каждый Python-файл в AST-дерево (объект File)
            rv::transform(extract_funcs) |       // из каждого File извлекаем вектор структур-описателей всех функций
            rv::join |                     // объединяем все векторы структур-описателей функций в один плоский диапазон
@@ -90,6 +90,7 @@ auto SplitByClasses(const auto &analysis) {
     // Лямбда, проверяющая, что два метода принадлежат одному классу
     auto got_same_class = [](const auto &a, const auto &b) { return a.first.class_name == b.first.class_name; };
 
+    // Получаем вектор векторов результатов анализа с помощью композиции отображений
     return analysis | rv::filter(is_class_method) |  // фильтруем только методы классов
            rv::chunk_by(got_same_class) |            // группируем методы по одинаковым классам
            rs::to<std::vector>();                    // преобразуем диапазон в вектор векторов результатов анализа
@@ -107,6 +108,7 @@ auto SplitByFiles(const auto &analysis) {
     // Лямбда, проверяющая, что две функции принадлежат одному файлу
     auto got_same_file = [](const auto &a, const auto &b) { return a.first.filename == b.first.filename; };
 
+    // Получаем вектор векторов результатов анализа с помощью композиции отображений
     return analysis | rv::chunk_by(got_same_file) |  // группируем функции по одинаковым файлам
            rs::to<std::vector>();                    // преобразуем диапазон в вектор векторов результатов анализа
 }
