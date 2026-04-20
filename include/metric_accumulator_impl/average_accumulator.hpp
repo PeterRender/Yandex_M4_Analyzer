@@ -1,38 +1,31 @@
 #pragma once
 #include <unistd.h>
 
-#include <algorithm>
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <ranges>
-#include <sstream>
-#include <string>
-#include <variant>
-#include <vector>
-
 #include "metric_accumulator.hpp"
 
 namespace analyzer::metric_accumulator::metric_accumulator_impl {
 
-struct AverageAccumulator : public IAccumulator {
+// Аккумулятор, вычисляющий среднее арифметическое значений метрики
+// (например, среднее количество параметров на функцию)
+class AverageAccumulator : public IAccumulator {
+public:
+    // Метод, накапливающий очередное значение метрики
     void Accumulate(const metric::MetricResult &metric_result) override;
 
+    // Метод, финализирующий накопление (вычисляет среднее)
     void Finalize() override;
 
-    void Reset();
+    // Метод, сбрасывающий состояние аккумулятора
+    void Reset() override;
 
+    // Метод, возвращающий вычисленное среднее значение
+    // (должен вызываться после Finalize)
     double Get() const;
 
 private:
-    int sum = 0;
-    int count = 0;
-    double average = 0;
+    int sum = 0;         // сумма всех накопленных значений
+    int count = 0;       // количество накопленных значений
+    double average = 0;  // вычисленное среднее (после Finalize)
 };
 
 }  // namespace analyzer::metric_accumulator::metric_accumulator_impl

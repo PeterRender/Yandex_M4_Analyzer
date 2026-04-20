@@ -24,8 +24,12 @@
 
 namespace analyzer {
 
-namespace rv = std::ranges::views;
-namespace rs = std::ranges;
+namespace rv = std::ranges::views;  // псевдоним пространства имен отображений
+namespace rs = std::ranges;         // псевдоним пространства имен диапазонов
+
+// Псевдоним типа для результата анализа - вектор пар (функция, вектор её метрик)
+using AnalysisResult = std::vector<std::pair<function::Function, metric::MetricResults>>;
+
 /**
  * @brief Анализирует список Python-файлов и извлекает метрики для всех функций и методов.
  *
@@ -38,13 +42,30 @@ namespace rs = std::ranges;
  * 5. Для каждой функции вычисляет набор метрик через переданный `metric_extractor`.
  * 6. Возвращает вектор пар: (функция, результаты её метрик).
  */
-auto AnalyseFunctions(const std::vector<std::string> &files,
-                      const analyzer::metric::MetricExtractor &metric_extractor) {
-    // здесь ваш код
+auto AnalyseFunctions(const std::vector<std::string> &files, const metric::MetricExtractor &metric_extractor) {
+
+    // Лямбда, преобразующая Python-файл в AST-дерево (объект File) с помощью tree-sitter
+    auto create_ast = [](const std::string &filename) { return file::File(filename); };
+
+    // Лямбда, извлекающая из AST-дерева Python-файла структуры-описатели всех найденных функций
+    function::FunctionExtractor extractor;  // объект-хелпер для извлечения всех функций из AST-дерева Python-файла
+    auto extract_funcs = [&extractor](const file::File &file) { return extractor.Get(file); };
+
+    // Лямбда, вычисляющая все зарегистрированные метрики для переданной функции
+    auto calc_metrics = [&metric_extractor](const function::Function &func) {
+        return std::make_pair(func, metric_extractor.Get(func));
+    };
+
+    // Получаем вектор результата анализа с помощью композиции отображений
+    return files | rv::transform(create_ast) |  // преобразуем каждый Python-файл в AST-дерево (объект File)
+           rv::transform(extract_funcs) |       // из каждого File извлекаем вектор структур-описателей всех функций
+           rv::join |                     // объединяем все векторы структур-описателей функций в один плоский диапазон
+           rv::transform(calc_metrics) |  // для каждой функции вычисляем метрики и формируем пару (функция, метрики)
+           rs::to<std::vector>();         // преобразуем полученный диапазон в вектор результата анализа
 }
 
 /**
- * 
+ *
  * @brief Группирует результаты анализа по классам.
  *
  * Эта функция:
@@ -62,7 +83,17 @@ auto AnalyseFunctions(const std::vector<std::string> &files,
  * действительно исчезают из результата.
  */
 auto SplitByClasses(const auto &analysis) {
-    // здесь ваш код
+
+    // Лямбда, проверяющая, является ли функция методом класса
+    auto is_class_method = [](const auto &item) { return item.first.class_name.has_value(); };
+
+    // Лямбда, проверяющая, что два метода принадлежат одному классу
+    auto got_same_class = [](const auto &a, const auto &b) { return a.first.class_name == b.first.class_name; };
+
+    // Получаем вектор векторов результатов анализа с помощью композиции отображений
+    return analysis | rv::filter(is_class_method) |  // фильтруем только методы классов
+           rv::chunk_by(got_same_class) |            // группируем методы по одинаковым классам
+           rs::to<std::vector>();                    // преобразуем диапазон в вектор векторов результатов анализа
 }
 
 /**
@@ -74,7 +105,12 @@ auto SplitByClasses(const auto &analysis) {
  * - Использует `chunk_by`, поэтому **порядок функций в `analysis` должен быть по файлам**.
  */
 auto SplitByFiles(const auto &analysis) {
-    // здесь ваш код
+    // Лямбда, проверяющая, что две функции принадлежат одному файлу
+    auto got_same_file = [](const auto &a, const auto &b) { return a.first.filename == b.first.filename; };
+
+    // Получаем вектор векторов результатов анализа с помощью композиции отображений
+    return analysis | rv::chunk_by(got_same_file) |  // группируем функции по одинаковым файлам
+           rs::to<std::vector>();                    // преобразуем диапазон в вектор векторов результатов анализа
 }
 
 /**
@@ -85,9 +121,9 @@ auto SplitByFiles(const auto &analysis) {
  *   (то есть по каждой функции и её метрикам).
  * - Передаёт результаты метрик (`elem.second`) в аккумулятор через `AccumulateNextFunctionResults`.
  */
-void AccumulateFunctionAnalysis(const auto &analysis,
-                                const analyzer::metric_accumulator::MetricsAccumulator &accumulator) {
-    // здесь ваш код
+void AccumulateFunctionAnalysis(const auto &analysis, const metric_accumulator::MetricsAccumulator &accumulator) {
+    rs::for_each(analysis,
+                 [&accumulator](const auto &elem) { accumulator.AccumulateNextFunctionResults(elem.second); });
 }
 
 }  // namespace analyzer

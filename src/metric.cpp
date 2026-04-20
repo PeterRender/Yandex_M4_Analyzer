@@ -21,7 +21,12 @@
 #include "function.hpp"
 
 namespace analyzer::metric {
-void MetricExtractor::RegisterMetric(std::unique_ptr<IMetric> metric) { metrics.push_back(std::move(metric)); }
+
+namespace rv = std::ranges::views;  // псевдоним пространства имен отображений
+namespace rs = std::ranges;         // псевдоним пространства имен диапазонов
+
+// Метод, регистрирующий новую метрику (добавляет ее в хранилище метрик)
+void MetricExtractor::RegisterMetric(std::unique_ptr<IMetric> metric) { metrics_.push_back(std::move(metric)); }
 
 /**
  * @brief Вычисляет все зарегистрированные метрики для заданной функции.
@@ -30,8 +35,12 @@ void MetricExtractor::RegisterMetric(std::unique_ptr<IMetric> metric) { metrics.
  * к переданной функции `func` и собирает результаты в вектор.
  */
 MetricResults MetricExtractor::Get(const function::Function &func) const {
-    // здесь ваш код
-    return {};
+    // Создаем отображение, преобразующее каждый элемент массива metrics_ (unique_ptr<IMetric>) в MetricResult,
+    // и вставляем полученные структуры в вектор результатов.
+    // При возврате вектора результатов работает RVO-оптимизация компилятора
+    return MetricResults(metrics_ |
+                         rv::transform([&func](const auto &metric_ptr) { return metric_ptr->Calculate(func); }) |
+                         rs::to<std::vector>()  // поддерживается в C++23
+    );
 }
-
 }  // namespace analyzer::metric
